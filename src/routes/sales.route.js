@@ -1,5 +1,8 @@
 const { SaleModel } = require('../models')
-const { datesUtil: { getIsoDate } } = require('../utils')
+const {
+  queryHelper: { createBaseQuery },
+  datesUtil: { now }
+} = require('../utils')
 
 exports.post = (req, res, next) => {
   const { price, type, payments } = req.body
@@ -11,9 +14,11 @@ exports.post = (req, res, next) => {
     res.status(500).send({ error: 'You need to specify the Credit Card payments' })
     return
   }
-  const sale = { price, type, payments, date: new Date() }
+  const sale = { price, type, payments, date: now().toISOString() }
   SaleModel.create(sale, (err, doc) => {
-    if (err) return next(err)
+    if (err) {
+      throw new Error('There was an error on the SaleModel creation', req.body, err)
+    }
     res.status(201).send({ success: true }) // maybe send whole day data?
   })
 }
@@ -21,28 +26,15 @@ exports.post = (req, res, next) => {
 exports.get = (req, res, next) => {
   const query = createQuery(req.query)
   SaleModel.find(query, (err, docs) => {
-    if (err) return next(err)
+    if (err) {
+      throw new Error('There was on the SaleModel query', req.query, err)
+    }
     res.send(docs)
   })
 }
 
-const createQuery = ({ type, date, fromDate, toDate, fromPrice, toPrice }) => {
-  let query = {}
+const createQuery = ({ type, ...params }) => {
+  let query = createBaseQuery(params)
   if(type) Object.assign(query, { type })
-  if(date) {
-    const isoDate = getIsoDate(date)
-    Object.assign(query, { date: isoDate })
-    return query
-  }
-  if(fromDate || toDate) {
-    query.date = {}
-    if(fromDate) Object.assign(query.date, { $gte: getIsoDate(fromDate) })
-    if(toDate) Object.assign(query.date, { $lt: getIsoDate(toDate) })
-  }
-  if(fromPrice || toPrice) {
-    query.price = {}
-    if(fromPrice) Object.assign(query.price, { $gte: fromPrice })
-    if(toPrice) Object.assign(query.price, { $lt: toPrice })
-  }
   return query
 }
