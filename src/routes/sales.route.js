@@ -10,7 +10,7 @@ exports.post = (req, res, next) => {
     res.status(500).send({ error: 'You need to specify both Price and Type' })
     return
   }
-  if(type === 'credito' && !payments) {
+  if(type === 'credit' && !payments) {
     res.status(500).send({ error: 'You need to specify the Credit Card payments' })
     return
   }
